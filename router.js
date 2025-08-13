@@ -1,9 +1,9 @@
-import { initQuiz } from './app.js';
-import { initAdmin } from './admin.js';
+import { initQuiz } from "./app.js";
+import { initAdmin } from "./admin.js";
 
 function route() {
-  const path = location.pathname.replace(/\/+/g, '/');
-  if (path.endsWith('/admin')) {
+  const path = location.pathname.replace(/\/+/g, "/");
+  if (path.endsWith("/admin")) {
     initAdmin();
   } else {
     initQuiz();
@@ -11,6 +11,4 @@ function route() {
 }
 
 route();
-window.addEventListener('popstate', route);
-
-
+window.addEventListener("popstate", route);

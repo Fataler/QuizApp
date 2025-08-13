@@ -230,13 +230,16 @@ export function initQuiz() {
 
 function shareResult() {
   const total = state.questions.length;
-  const text = `Я знаток жаб! Мой результат: ${state.score}/${total}`;
-  const shareData = { title: "DOWEN QUIZ", text, url: location.href };
+  const msg = getMessageForScore(state.score);
+  const text = `Мой результат в DOWEN QUIZ: ${state.score}/${total}${
+    msg ? ` — ${msg}` : ""
+  }`;
+  const shareData = { title: "DOWEN QUIZ", text };
   if (navigator.share) {
     navigator.share(shareData).catch((err) => console.warn("[share]", err));
   } else if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard
-      .writeText(`${text} ${location.href}`)
+      .writeText(text)
       .then(() => alert("Текст скопирован в буфер обмена"))
       .catch(() => alert(text));
   } else {
