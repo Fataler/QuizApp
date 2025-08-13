@@ -136,13 +136,13 @@ function render(root, model) {
 
 function createEmptyQuestion() {
   return {
-    text: "",
+    text: "Чья это лягушка?",
     image: "",
     choices: [
-      { text: "", comment: "" },
-      { text: "", comment: "" },
-      { text: "", comment: "" },
-      { text: "", comment: "" },
+      { text: "Славик", comment: "" },
+      { text: "Вика", comment: "" },
+      { text: "Денис", comment: "" },
+      { text: "Руслан", comment: "" },
     ],
     correctIndex: 0,
   };
