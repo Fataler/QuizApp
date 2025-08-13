@@ -1,9 +1,3 @@
-/*
-  Mobile Quiz SPA
-  - Loads local JSON for now (can be swapped to network later)
-  - Smooth UI transitions, touch-friendly
-*/
-
 const state = {
   questions: [],
   index: 0,
@@ -19,11 +13,13 @@ async function loadQuiz() {
     const res = await fetch("./data/quiz.json", { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to load quiz.json");
     const data = await res.json();
-    // Basic validation
     if (!Array.isArray(data.questions)) throw new Error("Invalid quiz format");
     state.questions = data.questions;
     state.messages = data.messages || [];
     render();
+    preloadQuizImages(state.questions).catch((e) =>
+      console.warn("[preload]", e)
+    );
   } catch (err) {
     console.error("[loadQuiz]", err);
     appRoot.innerHTML = `<div class="phone"><div class="content"><p>Не удалось загрузить данные. Проверьте консоль.</p></div></div>`;
@@ -228,6 +224,19 @@ export function initQuiz() {
   loadQuiz();
 }
 
+function isProbablyMobile() {
+  try {
+    const ua = navigator.userAgent || navigator.vendor || window.opera || "";
+    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+    const hasCoarsePointer =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(pointer: coarse)").matches;
+    return mobileRegex.test(ua) || hasCoarsePointer;
+  } catch (_) {
+    return false;
+  }
+}
+
 function shareResult() {
   const total = state.questions.length;
   const msg = getMessageForScore(state.score);
@@ -235,6 +244,19 @@ function shareResult() {
     msg ? ` — ${msg}` : ""
   }`;
   const shareData = { title: "DOWEN QUIZ", text };
+  // On desktop: copy to clipboard and show message
+  if (!isProbablyMobile()) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => alert("Текст скопирован в буфер обмена"))
+        .catch(() => alert(text));
+    } else {
+      alert(text);
+    }
+    return;
+  }
+
   if (navigator.share) {
     navigator.share(shareData).catch((err) => console.warn("[share]", err));
   } else if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -244,5 +266,54 @@ function shareResult() {
       .catch(() => alert(text));
   } else {
     alert(text);
+  }
+}
+
+function preloadQuizImages(questions, maxConcurrent = 6) {
+  try {
+    const urls = Array.from(
+      new Set(
+        (questions || [])
+          .map((q) => (q && typeof q.image === "string" ? q.image.trim() : ""))
+          .filter((u) => !!u)
+      )
+    );
+    if (urls.length === 0) return Promise.resolve();
+
+    try {
+      urls.forEach((url) => {
+        const link = document.createElement("link");
+        link.rel = "preload";
+        link.as = "image";
+        link.href = url;
+        document.head.appendChild(link);
+      });
+    } catch (_) {
+    }
+
+    let nextIndex = 0;
+    const limit = Math.max(1, Math.min(maxConcurrent, urls.length));
+
+    const loadOne = (url) =>
+      new Promise((resolve) => {
+        const img = new Image();
+        try { img.decoding = "async"; } catch (_) {}
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        img.src = url;
+      });
+
+    const worker = async () => {
+      while (nextIndex < urls.length) {
+        const current = urls[nextIndex++];
+        await loadOne(current);
+      }
+    };
+
+    const workers = Array.from({ length: limit }, worker);
+    return Promise.allSettled(workers).then(() => undefined);
+  } catch (err) {
+    console.warn("[preload] failed", err);
+    return Promise.resolve();
   }
 }
