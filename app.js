@@ -10,7 +10,8 @@ const appRoot = document.getElementById("app");
 
 async function loadQuiz() {
   try {
-    const res = await fetch("./data/quiz.json", { cache: "no-store" });
+    const quizUrl = new URL("./data/quiz.json", import.meta.url);
+    const res = await fetch(quizUrl, { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to load quiz.json");
     const data = await res.json();
     if (!Array.isArray(data.questions)) throw new Error("Invalid quiz format");
